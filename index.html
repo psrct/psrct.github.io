@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <title>Project Details</title>
 </head>
@@ -26,127 +26,180 @@
         <section class="project-details">
             <div class="row">
                 <div class="col-md-6 code-snippet">
-                    <h3>โค้ดตัวอย่าง</h3>
-                    <pre>
-//Basic Math.h
+                    <div class="bg-success text-white p-2 mb-2">
+                        <h3 class="m-0">โค้ดตัวอย่าง</h3>
+                    </div>
 
-#ifndef BASIC_MATH_H
-#define BASIC_MATH_H
+                    <pre class="codebox">
+//basic math.c
 
+#include "basic_math.h"
+
+#include <math.h>
 #include "raylib.h"
+#include <stdlib.h>
+#include <stdio.h>
 
-double min(double a, double b);
-double max(double a, double b);
-float getRotation(float x1, float y1, float x2, float y2);
-float radiansToDegrees(float radians);
-float degreesToRadians(float degrees);
-Vector2 getMovingPoint(float x1, float y1, float rotation, float distance);
-int randomNumber(int min, int max);
-void shortFormToken(char *text, int tokenCount);
+char short_form[5] = {'k', 'm', 'b', 't', 'q'};
 
-#endif
+double min(double a, double b) {
+    return a < b ? a : b;
+}
+
+double max(double a, double b) {
+    return a > b ? a : b;
+}
+
+float getRotation(float x1, float y1, float x2, float y2) {
+    return radiansToDegrees(atan2(y2 - y1, x2 - x1));
+}
+
+float radiansToDegrees(float radians) {
+    return radians * (180.0 / M_PI);
+}
+
+float degreesToRadians(float degrees) {
+    return degrees * (M_PI / 180.0);
+}
+
+Vector2 getMovingPoint(float x1, float y1, float rotation, float distance) {
+    float radians = degreesToRadians(rotation);
+
+    return (Vector2){x1+(distance*cos(radians)), y1+(distance*sin(radians))};
+}
+
+int randomNumber(int min, int max) {
+    return rand() % (max - min + 1) + min;
+}
+
+void shortFormToken(char *text, int tokenCount) {
+    int count = 0;
+    float tokenCountFloat = tokenCount;
+    while (tokenCountFloat/1000.0 >= 1) {
+        tokenCountFloat /= 1000;
+        count++;
+    }
+    if (count == 0) {
+        sprintf(text, "%d", tokenCount);
+    } else {
+        sprintf(text, "%.1f%c", tokenCountFloat, short_form[count-1]);
+    }
+}
                     </pre>
 
-                    <pre>
-//branch.h
+                    <pre class="codebox">
+//main.c
 
-#ifndef BRANCH_H
-#define BRANCH_H
+#include "temperature.h"
 
-#include "raylib.h" // Needed for [Vector2] type
-#include <stdbool.h> // Needed for [bool] type
-
-typedef struct {
-    short animal_max;
-} Building;
-
-typedef struct {
-    int id;
-    Vector2 pos;
-} Product;
-
-struct Branch;
-typedef struct Branch {
-    int id;
-
-    Vector2 pos;
-
-    struct Branch* parent;
-    struct Branch* child_first;
-    struct Branch* child_second;
-
-    bool is_leaves;
-    bool is_flower;
-    bool is_fruit;
-
-    struct Building* type_building;
-
-    short animal_count;
-    
-    double size;
-
-    float rotation;
-} Branch;
-
-extern Branch* selectedBranch;
-
-extern Branch* branch_list;
-extern int branch_count;
-
-extern Product* product_list;
-extern int product_count;
-
-void displayWarning();
-
-void branchStart();
-
-void updateBranchCreating();    // Updates branch that are during the creating
-void updateBranch();            // Updates branch that already exist
-void updateBranchMenu();        // Updates branch menu when selected
-
-void addBranchSize(float size);
-void branchAdd(Vector2 pos, float rotation, Branch* parent); // Build a branch after select the rotation
-void branchRemoveWarning(int id);                            /* Show how many branch will be disappear from remove this branch and
-                                                                player must click comfirm*/
-void branchRemoveConfirm(int id);                           // Remove a that branch and it child
-void branchSortID();                                        // Generating new ID after delete branch and clear old branch ID
-void branchCreating();                                      // Rotate the branch
-void branchCreatingCancel();                                // Cancel creating branch mode
-void branchSelecting(int frameCount);                       // Click to select branch
-int branchCounting(int id);                                  // For counting branch itself and descendants
-
-void buildLeaves(int id);
-void buildFlower(int id);
-void buildBuilding(int id);
-
-#endif                        
-                    </pre>
-
-                    <pre>
-//custom_raylib.h
-
-#ifndef CUSTOM_RAYLIB_H
-#define CUSTOM_RAYLIB_H
-                            
 #include "raylib.h"
+#include "stdlib.h"
 #include "stdbool.h"
-                            
-float GetRotation(Vector2 mouse_pos, Vector2 point, Vector2 origin);
-bool CheckCollisionPointRectangleRotated(Vector2 point, Rectangle rect, Vector2 origin, float rotation);
-bool colorEqualsNoAlpha(Color color1, Color color2);
-                        
-                        #endif
+#include "stdio.h"
+
+#include "time.h"
+#include "declaration.h"
+#include "sound.h"
+#include "screen_effect.h"
+#include "drag_screen.h"
+#include "branch.h"
+#include "weather.h"
+#include "data.h"
+#include "temperature.h"
+#include "string.h"
+
+int main(void) {
+    char *portName = "\\\\.\\COM3";
+    printf("%s", setupSerial(portName) ? "Connected to COM3.\n" : "Failed to connect to COM3.\n");
+
+    char temperatureText[10];
+
+    timeStart();
+    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Binary Tree");
+    InitAudioDevice();
+    SetTargetFPS(60);
+    SetExitKey(0); // Avoid exit by pressing ESC button
+
+    initTexture2D();
+    initMusic();
+    branchStart();
+    branchAdd((Vector2){780, 725}, 0.0f, NULL);
+
+    fade_screen();
+    // PlaySound(BGM_GARDEN_DREAMS);
+
+    weatherStart();
+    
+    while (!WindowShouldClose()) {
+        if (IsKeyPressed(KEY_R)) {
+            changeWeather(WEATHER_RAINNING_ID);
+        } else if (IsKeyPressed(KEY_S)) {
+            changeWeather(WEATHER_SNOWING_ID);
+        }
+        mouse_pos = GetMousePosition();
+        updateMusic();
+
+        BeginDrawing();     // Starting Draw Elements This Frame.
+
+        drag_screen_cal();  // Calculate drawing_map()
+        updateWeather();
+        drawing_map();      // Starting Draw Ground & Cloud
+
+        updateBranch();
+        updateLightSource();
+        update_fading();
+        
+        displayDay();           // Display Current Day
+        displayTokens();        // Display Tokens
+
+        DrawText(temperatureText, 29, SCREENHEIGHT-71, 50, BLACK); // Shadow
+        DrawText(temperatureText, 25, SCREENHEIGHT-75, 50, getStatus() ? WHITE : RED); // Display Temperature
+
+        gameFrame++;
+        if (gameFrame >= 60) {
+            gameFrame = 0;
+            updateTime();   // Update Time
+            if (getStatus()) {
+                sprintf(temperatureText, "%.2f °C", getCelsius());
+            } else {
+                strcpy(temperatureText, "Lost °C");
+                setupSerial(portName);
+            }
+        }
+
+        EndDrawing();       // Ending Drawing Elements This Frame.
+    }
+
+    unloadAllTexture2D();
+    unloadAllMusic();
+
+    disableHandle();
+
+    CloseAudioDevice();
+    CloseWindow();
+    return 0;
+}
                     </pre>
+
+                    <a href="https://github.com/PongphunKaewpongpok/Binary-Tree" target="_blank"><button type="button" class="btn btn-success btn-lg mx-3">Github</button></a>
+                    
                 </div>
         
                 <div class="col-md-6 code-snippet">
-                    <h3>ภาพตัวอย่างการทำงาน</h3>
+                    <div class="bg-success text-white p-2 mb-2">
+                        <h3 class="m-0">ภาพตัวอย่างการทำงาน</h3>
+                    </div>
+                    <img src="https://via.placeholder.com/600x400" alt="Project screenshot" class="img-fluid">
+                    <p></p>
+                    <div class="bg-success text-white p-2 mb-2">
+                        <h3 class="m-0">ภาพตัวอย่างการทำงาน</h3>
+                    </div>
                     <img src="https://via.placeholder.com/600x400" alt="Project screenshot" class="img-fluid">
                 </div>
             </div>
         </section>
-        
     </div>
+
 <!-- Poster -->
 <div class="section-poster">
     <div class="container">
@@ -162,6 +215,7 @@ bool colorEqualsNoAlpha(Color color1, Color color2);
         </section>    
     </div>
 </div>
+
 <!-- Demo -->
     <div class="section-video">
         <div class="container">
@@ -186,15 +240,15 @@ bool colorEqualsNoAlpha(Color color1, Color color2);
             <div class="img-section">
                 <div class="column">
                     <div class="img-mem">
-                        <img src="/image/po.png" class="memimage img-thumbnail" alt="Proton">
+                        <img src="image/po.png" class="memimage img-thumbnail" alt="Proton">
                         <p class="name py-1">นายพงศ์พันธุ์ แก้วป้องปก 66070123</p>
                     </div>
                     <div class="img-mem">
-                        <img src="/image/ta.png" class="memimage img-thumbnail" alt="Tar">
+                        <img src="image/ta.png" class="memimage img-thumbnail" alt="Tar">
                         <p class="name py-1">นายพิชญุตม์ เพ็ชรเย็น 66070133</p>
                     </div>
                     <div class="img-mem">
-                        <img src="/image/petch.png" class="memimage img-thumbnail" alt="Petch">
+                        <img src="image/petch.png" class="memimage img-thumbnail" alt="Petch">
                         <p class="name py-1">นายศิรเชษฐ์ โชติฐากุลอนันต์ 66070191</p>
                     </div>
                 </div>
