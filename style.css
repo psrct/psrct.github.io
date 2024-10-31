@@ -76,6 +76,12 @@ header {
     overflow-x: auto;
 }
 /* Demo */
+.section-video{
+    width: 100%;
+    background-color: #ffffff;
+    height: auto;
+    padding-top: 90px;
+}
 .demo{
     text-align: center;
     margin: 20px 0;
@@ -85,14 +91,18 @@ header {
 .long_text{
     text-align: center
 }
+.video-demo{
+    justify-self: center;
+    padding-top: 20px;
+}
 /* member */
 .member-section{
     width: 100%;
     float: left;
     background-color: #ffffff;
     height: auto;
-    padding-bottom: 90px;
-    padding-top: 90px;
+    padding-bottom: 50px;
+    padding-top: 50px;
 }
 .text-member{
     color: #000000;
