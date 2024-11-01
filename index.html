@@ -496,96 +496,81 @@ BRANCHHEIGHT*(selectedBranch->size)};
                     </pre>
 
                     <pre class="codebox">
-//main.c
+//temperature.c
 
 #include "temperature.h"
 
-#include "raylib.h"
-#include "stdlib.h"
-#include "stdbool.h"
-#include "stdio.h"
+#define NOMINMAX
+#define NOGDI
 
-#include "time.h"
-#include "declaration.h"
-#include "sound.h"
-#include "screen_effect.h"
-#include "drag_screen.h"
-#include "branch.h"
-#include "weather.h"
-#include "data.h"
-#include "temperature.h"
-#include "string.h"
+// เปลื่ยนชื่อเพื่อเตรียมสำหรับลบ
+#define CloseWindow WinAPICloseWindow
+#define ShowCursor WinAPICShowCursor
+#define DrawTextA WinAPICDrawTextA
+#define LoadImageA WinAPICLoadImageA
+#define DrawTextExA WinAPICDrawTextExA
+#define PlaySoundA WinAPICPlaySoundA
 
-int main(void) {
-    char *portName = "\\\\.\\COM3";
-    printf("%s", setupSerial(portName) ? "Connected to COM3.\n" : "Failed to connect to COM3.\n");
+#include &lt;windows.h&gt;
 
-    char temperatureText[10];
+#undef CloseWindow  // ลบ CloseWindow จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#undef ShowCursor   // ลบ ShowCursor จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#undef DrawTextA    // ลบ DrawTextA จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#undef LoadImageA   // ลบ LoadImageA จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#undef DrawTextExA  // ลบ DrawTextExA จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#undef PlaySoundA   // ลบ PlaySoundA จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#ifdef Rectangle
+#undef Rectangle    // ลบ Rectangle จาก windows.h เพื่อไม่ให้ประกาศชนกับ raylib.h
+#endif
 
-    timeStart();
-    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Binary Tree");
-    InitAudioDevice();
-    SetTargetFPS(60);
-    SetExitKey(0); // Avoid exit by pressing ESC button
+#include &lt;stdio.h&gt;
+#include &lt;stdbool.h&gt;
 
-    initTexture2D();
-    initMusic();
-    branchStart();
-    branchAdd((Vector2){780, 725}, 0.0f, NULL);
+static HANDLE hSerial;
+static DCB dcbSerialParams = {0};
+static COMMTIMEOUTS timeouts = {0};
+bool status = false;
 
-    fade_screen();
-    // PlaySound(BGM_GARDEN_DREAMS);
+// ฟังก์ชันเปิด Serial Communication
+bool setupSerial(char *portName) {
+    hSerial = CreateFile(portName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hSerial == INVALID_HANDLE_VALUE) return false;
 
-    weatherStart();
-    
-    while (!WindowShouldClose()) {
-        if (IsKeyPressed(KEY_R)) {
-            changeWeather(WEATHER_RAINNING_ID);
-        } else if (IsKeyPressed(KEY_S)) {
-            changeWeather(WEATHER_SNOWING_ID);
-        }
-        mouse_pos = GetMousePosition();
-        updateMusic();
+    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+    if (!GetCommState(hSerial, &dcbSerialParams)) return false;
 
-        BeginDrawing();     // Starting Draw Elements This Frame.
+    dcbSerialParams.BaudRate = CBR_9600;
+    dcbSerialParams.ByteSize = 8;
+    dcbSerialParams.StopBits = ONESTOPBIT;
+    dcbSerialParams.Parity = NOPARITY;
 
-        drag_screen_cal();  // Calculate drawing_map()
-        updateWeather();
-        drawing_map();      // Starting Draw Ground & Cloud
+    if (!SetCommState(hSerial, &dcbSerialParams)) return false;
 
-        updateBranch();
-        updateLightSource();
-        update_fading();
-        
-        displayDay();           // Display Current Day
-        displayTokens();        // Display Tokens
+    timeouts.ReadIntervalTimeout = 50;
+    timeouts.ReadTotalTimeoutConstant = 50;
+    timeouts.ReadTotalTimeoutMultiplier = 10;
 
-        DrawText(temperatureText, 29, SCREENHEIGHT-71, 50, BLACK); // Shadow
-        DrawText(temperatureText, 25, SCREENHEIGHT-75, 50, getStatus() ? WHITE : RED); // Display Temperature
+    if (!SetCommTimeouts(hSerial, &timeouts)) return false;
+    status = true;
+    return true;
+}
 
-        gameFrame++;
-        if (gameFrame >= 60) {
-            gameFrame = 0;
-            updateTime();   // Update Time
-            if (getStatus()) {
-                sprintf(temperatureText, "%.2f °C", getCelsius());
-            } else {
-                strcpy(temperatureText, "Lost °C");
-                setupSerial(portName);
-            }
-        }
+bool getStatus() {
+    return status;
+}
 
-        EndDrawing();       // Ending Drawing Elements This Frame.
+void disableHandle() {
+    CloseHandle(hSerial);
+}
+
+float getCelsius() {
+    DWORD bytesRead;
+    char buffer[8];
+    if (!ReadFile(hSerial, buffer, sizeof(buffer) - 1, &bytesRead, NULL)) {
+        status = false;
     }
-
-    unloadAllTexture2D();
-    unloadAllMusic();
-
-    disableHandle();
-
-    CloseAudioDevice();
-    CloseWindow();
-    return 0;
+    buffer[bytesRead] = '\0'; // เติม null terminator
+    return atof(buffer);      // แปลงค่าเป็น float
 }
                     </pre>
 
